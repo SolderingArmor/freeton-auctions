@@ -11,7 +11,7 @@ pragma AbiHeader expire;
 
 //================================================================================
 //
-import "../contracts/AuctionManager.sol";
+import "../interfaces/IAuctionManager.sol";
 import "../interfaces/IDebot.sol";
 import "../interfaces/IUpgradable.sol";
 
@@ -21,6 +21,7 @@ contract AuctionDebot is Debot, Upgradable
 {
     address _auctionManagerAddress;
     address _auctionAddress;
+    TvmCell _auctionCode;
     address _msigAddress;
     
     address      _escrowAddress;    // escrow multisig for collecting fees;
@@ -62,12 +63,41 @@ contract AuctionDebot is Debot, Upgradable
     
     //========================================
     //
-    function setFAuctionManagerAddress(address managerAddress) public 
+    function setAuctionManagerAddress(address managerAddress) public 
     {
         require(msg.pubkey() == tvm.pubkey() || senderIsOwner(), ERROR_MESSAGE_SENDER_IS_NOT_MY_OWNER);
         tvm.accept();
         _auctionManagerAddress = managerAddress;
-    }    
+    }
+    
+    //========================================
+    //
+    function setAuctionCode(TvmCell code) public 
+    {
+        require(msg.pubkey() == tvm.pubkey() || senderIsOwner(), ERROR_MESSAGE_SENDER_IS_NOT_MY_OWNER);
+        tvm.accept();
+        _auctionCode = code;
+    }
+
+    //========================================
+    //
+    /*function calculateAuctionInit(address sellerAddress, address buyerAddress, address assetAddress, AUCTION_TYPE auctionType, uint32 dtStart) public view returns (address, TvmCell)
+    {
+        TvmCell stateInit = tvm.buildStateInit({
+            contr: AuctionDnsRecord,
+            varInit: {
+                _sellerAddress: sellerAddress,
+                _buyerAddress:  buyerAddress,
+                _assetAddress:  assetAddress,
+                _auctionType:   auctionType,
+                _bidCode:      _bidCode,
+                _dtStart:       dtStart
+            },
+            code: _auctionCode
+        });
+
+        return (address(tvm.hash(stateInit)), stateInit);
+    }*/
 
 	//========================================
     //
@@ -134,10 +164,9 @@ contract AuctionDebot is Debot, Upgradable
     //
     function mainEnterDialog(uint32 index) public 
     {
-        //_eraseCtx();
         index = 0; // shut a warning
 
-        if(_auctionManagerAddress == addressZero)
+        if(_auctionManagerAddress == addressZero || _auctionCode.toSlice().empty())
         {
             Terminal.print(0, "DeBot is being upgraded.\nPlease come back in a minute.\nSorry for inconvenience.");
             return;
@@ -319,17 +348,31 @@ contract AuctionDebot is Debot, Upgradable
         // TODO: please revise everything and say, deploy or not
     }
 
-    function _createAuction_15(uint32 index) public
+    function _createAuction_15(uint32 index) public view
     {
-        TvmCell body = tvm.encodeBody(AuctionManager.createAuction, _sellerAddress, _buyerAddress, _assetAddress, _auctionType, _dtStart,
-                                                                    _feeValue, _minBid, _minPriceStep, _buyNowPrice, _dtEnd, _dtRevealEnd, _dutchCycle);
-        _sendTransact(tvm.functionId(_createAuction_16), _msigAddress, _auctionManagerAddress, body, ATTACH_VALUE);
+        index = 0; // shut a warning
+        TvmCell body = tvm.encodeBody(IAuctionManager.createAuction, _sellerAddress, _buyerAddress, _assetAddress, _auctionType, _dtStart,
+                                                                     _feeValue, _minBid, _minPriceStep, _buyNowPrice, _dtEnd, _dtRevealEnd, _dutchCycle);
+        _sendTransact(0, _msigAddress, _auctionManagerAddress, body, ATTACH_VALUE);
+
+        IAuctionManager(_auctionManagerAddress).calculateAuctionInit{
+                abiVer: 2,
+                extMsg: true,
+                sign: false,
+                time: uint64(now),
+                expire: 0,
+                pubkey: _emptyPk,
+                callbackId: tvm.functionId(_createAuction_16),
+                onErrorId:  tvm.functionId(_fetchAuction_Error)
+                }(_sellerAddress, _buyerAddress, _assetAddress, _auctionType, _dtStart);
     }
 
-    function _createAuction_16(address value) public
+    function _createAuction_16(address auctionAddress, TvmCell auctionInit) public 
     {
-        _fetchAuction_2(value);
+        auctionInit.toSlice(); // shut a warning
+        _fetchAuction_2(auctionAddress);
     }
+    
 
     //========================================
     //========================================

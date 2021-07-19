@@ -21,7 +21,7 @@ abstract contract IOwnable is IBase
 
     //========================================
     // Modifiers
-    function senderIsOwner() internal view inline returns (bool) { return (msg.sender.isStdAddrWithoutAnyCast() && _ownerAddress == msg.sender && _ownerAddress != addressZero);    }
+    function senderIsOwner() internal view inline returns (bool) { return (msg.isInternal && msg.sender.isStdAddrWithoutAnyCast() && _ownerAddress == msg.sender && _ownerAddress != addressZero);    }
     modifier onlyOwner {    require(senderIsOwner(), ERROR_MESSAGE_SENDER_IS_NOT_MY_OWNER);    _;    }
 
     //========================================
@@ -31,20 +31,23 @@ abstract contract IOwnable is IBase
 
     //========================================
     // 
-    function changeOwner(address newOwnerAddress) external onlyOwner reserve returnChange
+    function changeOwner(address newOwnerAddress) external onlyOwner reserve returnChange returns (address oldAddress, address newAddress)
     {
+        oldAddress = _ownerAddress;
         _ownerAddress = newOwnerAddress;
+
+        return (oldAddress, newOwnerAddress);
     }
 
     //========================================
     // 
-    function callChangeOwner(address newOwnerAddress) external responsible onlyOwner returns (address)
+    function callChangeOwner(address newOwnerAddress) external responsible onlyOwner reserve returns (address oldAddress, address newAddress)
     {
-        _reserve();
+        oldAddress = _ownerAddress;
         _ownerAddress = newOwnerAddress;
 
         // Return the change
-        return {value: 0, flag: 128}(newOwnerAddress);
+        return {value: 0, flag: 128}(oldAddress, newOwnerAddress);
     }
 }
 

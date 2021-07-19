@@ -10,9 +10,9 @@ import time
 import sys
 from   pathlib import Path
 from   pprint import pprint
-from   contract_AuctionManager      import AuctionManager
-from   contract_AuctionDnsRecord    import AuctionDnsRecord
-from   contract_DnsRecordTEST       import DnsRecordTEST
+from   contract_AuctionManagerDnsRecord import AuctionManagerDnsRecord
+from   contract_AuctionDnsRecord        import AuctionDnsRecord
+from   contract_DnsRecordTEST           import DnsRecordTEST
 
 #TON  = 1000000000
 #DIME =  100000000
@@ -51,7 +51,7 @@ for _, arg in enumerate(sys.argv[1:]):
 # EXIT CODE FOR SINGLE-MESSAGE OPERATIONS
 # we know we have only 1 internal message, that's why this wrapper has no filters
 def _getAbiArray():
-    return ["../bin/DnsRecord.abi.json", "../bin/AuctionBid.abi.json", "../bin/AuctionManager.abi.json", "../bin/AuctionDnsRecord.abi.json", "../bin/SetcodeMultisigWallet.abi.json"]
+    return ["../bin/DnsRecord.abi.json", "../bin/AuctionBid.abi.json", "../bin/AuctionManagerDnsRecord.abi.json", "../bin/AuctionDnsRecord.abi.json", "../bin/SetcodeMultisigWallet.abi.json"]
 
 def _getExitCode(msgIdArray):
     abiArray     = _getAbiArray()
@@ -99,7 +99,7 @@ class Test_01_CancelDnsAuction(unittest.TestCase):
         dtRevealEnd   = 0, # it is not blind auction
         dutchCycle    = 0) # it is not dutch auction
 
-    manager = AuctionManager(tonClient=getClient(), ownerAddress=msig.ADDRESS, bidCode=getCodeFromTvc(auction.TVC_BID), auctionCode=getCodeFromTvc(auction.TVC))
+    manager = AuctionManagerDnsRecord(tonClient=getClient(), ownerAddress=msig.ADDRESS, bidCode=getCodeFromTvc(auction.TVC_BID), auctionCode=getCodeFromTvc(auction.TVC))
     
     def test_0(self):
         print("\n\n----------------------------------------------------------------------")

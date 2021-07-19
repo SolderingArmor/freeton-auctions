@@ -5,21 +5,16 @@ pragma AbiHeader expire;
 
 //================================================================================
 //
-import "../interfaces/IOwnable.sol";
+import "../interfaces/IAuctionManager.sol";
 import "../contracts/AuctionDnsRecord.sol";
 
 //================================================================================
 //
-contract AuctionManager is IOwnable
+contract AuctionManagerDnsRecord is IAuctionManager
 {
     //========================================
-    // Variables
-    TvmCell static _bidCode;      //
-    TvmCell static _auctionCode;  //
-
-    //========================================
     //
-    function calculateAuctionInit(address sellerAddress, address buyerAddress, address assetAddress, AUCTION_TYPE auctionType, uint32 dtStart) public view returns (address, TvmCell)
+    function calculateAuctionInit(address sellerAddress, address buyerAddress, address assetAddress, AUCTION_TYPE auctionType, uint32 dtStart) public view override returns (address, TvmCell)
     {
         TvmCell stateInit = tvm.buildStateInit({
             contr: AuctionDnsRecord,
@@ -47,19 +42,8 @@ contract AuctionManager is IOwnable
 
     //========================================
     //
-    function getHashFromPrice(uint128 price, uint256 salt) external pure returns (uint256)
-    {
-        TvmBuilder builder;
-        builder.store(price);
-        builder.store(salt);
-        TvmCell cell = builder.toCell();
-        return tvm.hash(cell);
-    }
-    
-    //========================================
-    //
     function createAuction(address sellerAddress, address buyerAddress, address assetAddress, AUCTION_TYPE auctionType, uint32 dtStart,
-                           uint128 feeValue, uint128 minBid, uint128 minPriceStep, uint128 buyNowPrice, uint32 dtEnd, uint32 dtRevealEnd, uint32 dutchCycle) external view reserve returns (address)
+                           uint128 feeValue, uint128 minBid, uint128 minPriceStep, uint128 buyNowPrice, uint32 dtEnd, uint32 dtRevealEnd, uint32 dutchCycle) external view override reserve returns (address)
     {
         (address auctionAddress, TvmCell stateInit) = calculateAuctionInit(sellerAddress, buyerAddress, assetAddress, auctionType, dtStart);
         new AuctionDnsRecord{value: 0, flag: 128, wid: address(this).wid, stateInit: stateInit}(_ownerAddress, 500, feeValue, minBid, minPriceStep, buyNowPrice, dtEnd, dtRevealEnd, dutchCycle);

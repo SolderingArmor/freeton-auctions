@@ -5,12 +5,12 @@
 import freeton_utils
 from   freeton_utils import *
 
-class AuctionManager(object):
+class AuctionManagerDnsRecord(object):
     def __init__(self, tonClient: TonClient, ownerAddress: str, bidCode: str, auctionCode: str, signer: Signer = None):
         self.SIGNER      = generateSigner() if signer is None else signer
         self.TONCLIENT   = tonClient
-        self.ABI         = "../bin/AuctionManager.abi.json"
-        self.TVC         = "../bin/AuctionManager.tvc"
+        self.ABI         = "../bin/AuctionManagerDnsRecord.abi.json"
+        self.TVC         = "../bin/AuctionManagerDnsRecord.tvc"
         self.CODE        = getCodeFromTvc(self.TVC)
         self.CONSTRUCTOR = {"ownerAddress":ownerAddress}
         self.INITDATA    = {"_bidCode":bidCode, "_auctionCode":auctionCode}
