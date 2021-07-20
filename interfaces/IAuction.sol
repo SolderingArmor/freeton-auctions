@@ -312,6 +312,9 @@ abstract contract IAuction
         _currentBuyer    = bidderAddress;
         _currentBuyPrice = revealedPrice;
         _currentBuyDT    = now;
+
+        tvm.rawReserve(_currentBuyPrice, 0);
+        _currentBuyer.transfer(0, true, 128);
     }
     
     //========================================

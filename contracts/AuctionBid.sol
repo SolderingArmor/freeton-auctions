@@ -33,17 +33,14 @@ contract AuctionBid
     //
     constructor(uint128 feeValue) public onlyAuction
     { 
-        require(msg.value > feeValue, ERROR_NOT_ENOUGH_MONEY);
-        _reserve();
-
         _feeValue = feeValue;
-        _bidderAddress.transfer(0, true, 128);
     }
 
     //========================================
     //
     function setPriceHash(uint256 priceHash) external onlyAuction
     {
+        require(address(this).balance > _feeValue, ERROR_NOT_ENOUGH_MONEY);
         _reserve();
         _priceHash = priceHash;
         _bidderAddress.transfer(0, true, 128);

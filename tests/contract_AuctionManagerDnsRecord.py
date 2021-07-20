@@ -45,6 +45,14 @@ class AuctionManagerDnsRecord(object):
             "feeValue":feeValue, "minBid":minBid, "minPriceStep":minPriceStep, "buyNowPrice":buyNowPrice, "dtEnd":dtEnd, "dtRevealEnd":dtRevealEnd, "dutchCycle":dutchCycle}, 
             value=value, flags=1)
         return result
+    
+    # ========================================
+    #
+    def getHashFromPrice(self, price: int, salt: str):
+        result = self._run(functionName="getHashFromPrice", functionParams={"price":price, "salt":salt})
+        return result
+
+    
 
 # ==============================================================================
 # 
