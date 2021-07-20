@@ -200,7 +200,7 @@ abstract contract IAuction
 
     //========================================
     //
-    function _getDesiredPrice() internal view returns (uint128)
+    function getDesiredPrice() public view returns (uint128)
     {        
         uint128 desiredPrice = 0;
         if(_auctionType == AUCTION_TYPE.ENGLISH_FORWARD)
@@ -317,7 +317,7 @@ abstract contract IAuction
             require(msg.sender == _buyerAddress && _buyerAddress != addressZero, ERROR_INVALID_BUYER_ADDRESS);
         }
 
-        uint128 desiredPrice = _getDesiredPrice();
+        uint128 desiredPrice = getDesiredPrice();
 
         require(now >= _dtStart && now <= _dtEnd,       ERROR_AUCTION_NOT_RUNNING  );
         require( _auctionStarted,                       ERROR_AUCTION_NOT_RUNNING  );
@@ -337,7 +337,7 @@ abstract contract IAuction
             else // the bet is above BUY NOW price
             {
                 tvm.rawReserve(_buyNowPrice, 0); // reserve buy price, we don't want the change;
-                _auctionSucceeded     = true;
+                _auctionSucceeded = true;
             }
 
             // return TONs to previous buyer;
@@ -354,7 +354,7 @@ abstract contract IAuction
         else if(_auctionType == AUCTION_TYPE.PUBLIC_BUY || _auctionType == AUCTION_TYPE.PRIVATE_BUY || _auctionType == AUCTION_TYPE.DUTCH_FORWARD)
         {
             tvm.rawReserve(desiredPrice, 0); // reserve buy price, we don't want the change;
-            _auctionSucceeded     = true;
+            _auctionSucceeded = true;
             
             // Update current buyer
             _currentBuyer    = msg.sender;

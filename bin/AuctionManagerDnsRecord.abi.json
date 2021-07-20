@@ -77,6 +77,8 @@
 				{"name":"newOwnerAddress","type":"address"}
 			],
 			"outputs": [
+				{"name":"oldAddress","type":"address"},
+				{"name":"newAddress","type":"address"}
 			]
 		},
 		{
@@ -86,7 +88,8 @@
 				{"name":"newOwnerAddress","type":"address"}
 			],
 			"outputs": [
-				{"name":"value0","type":"address"}
+				{"name":"oldAddress","type":"address"},
+				{"name":"newAddress","type":"address"}
 			]
 		}
 	],

@@ -87,13 +87,13 @@ abstract contract Debot is IOwnable
     
     //========================================
     //
-    function _sendTransact(uint32 funcID, address msigAddr, address dest, TvmCell payload, uint128 grams) internal pure
+    function _sendTransact(uint32 funcSuccess, address msigAddr, address dest, TvmCell payload, uint128 grams) internal pure
     {
         IMsig(msigAddr).sendTransaction{
             abiVer: 2,
             extMsg: true,
             sign: true,
-            callbackId: funcID,
+            callbackId: funcSuccess,
             onErrorId: tvm.functionId(onError),
             time: uint32(now),
             expire: 0,

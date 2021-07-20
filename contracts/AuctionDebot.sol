@@ -21,8 +21,10 @@ contract AuctionDebot is Debot, Upgradable
 {
     address _auctionManagerAddress;
     address _auctionAddress;
-    TvmCell _auctionCode;
     address _msigAddress;
+
+    uint256 _blindSalt;
+    uint128 _blindBid;
     
     address      _escrowAddress;    // escrow multisig for collecting fees;
     uint16       _escrowPercent;    // times 100; 1% = 100, 10% = 1000;
@@ -51,7 +53,7 @@ contract AuctionDebot is Debot, Upgradable
     uint32       _currentBuyDT;     //
     uint128      _currentBlindBets; //
 
-    uint128 constant ATTACH_VALUE = 0.5 ton;
+    uint128 constant ATTACH_VALUE = 0.1 ton;
 
 	//========================================
     //
@@ -63,41 +65,23 @@ contract AuctionDebot is Debot, Upgradable
     
     //========================================
     //
+    function getAuctionTypeName(AUCTION_TYPE auctionType) internal pure returns (string)
+    {
+        if(auctionType == AUCTION_TYPE.ENGLISH_FORWARD){    return "ENGLISH_FORWARD";    }
+        if(auctionType == AUCTION_TYPE.ENGLISH_BLIND)  {    return "ENGLISH_BLIND";      }
+        if(auctionType == AUCTION_TYPE.DUTCH_FORWARD)  {    return "DUTCH_FORWARD";      }
+        if(auctionType == AUCTION_TYPE.PUBLIC_BUY)     {    return "PUBLIC_BUY";         }
+        if(auctionType == AUCTION_TYPE.PRIVATE_BUY)    {    return "PRIVATE_BUY";        }
+    }
+
+    //========================================
+    //
     function setAuctionManagerAddress(address managerAddress) public 
     {
         require(msg.pubkey() == tvm.pubkey() || senderIsOwner(), ERROR_MESSAGE_SENDER_IS_NOT_MY_OWNER);
         tvm.accept();
         _auctionManagerAddress = managerAddress;
     }
-    
-    //========================================
-    //
-    function setAuctionCode(TvmCell code) public 
-    {
-        require(msg.pubkey() == tvm.pubkey() || senderIsOwner(), ERROR_MESSAGE_SENDER_IS_NOT_MY_OWNER);
-        tvm.accept();
-        _auctionCode = code;
-    }
-
-    //========================================
-    //
-    /*function calculateAuctionInit(address sellerAddress, address buyerAddress, address assetAddress, AUCTION_TYPE auctionType, uint32 dtStart) public view returns (address, TvmCell)
-    {
-        TvmCell stateInit = tvm.buildStateInit({
-            contr: AuctionDnsRecord,
-            varInit: {
-                _sellerAddress: sellerAddress,
-                _buyerAddress:  buyerAddress,
-                _assetAddress:  assetAddress,
-                _auctionType:   auctionType,
-                _bidCode:      _bidCode,
-                _dtStart:       dtStart
-            },
-            code: _auctionCode
-        });
-
-        return (address(tvm.hash(stateInit)), stateInit);
-    }*/
 
 	//========================================
     //
@@ -166,7 +150,7 @@ contract AuctionDebot is Debot, Upgradable
     {
         index = 0; // shut a warning
 
-        if(_auctionManagerAddress == addressZero || _auctionCode.toSlice().empty())
+        if(_auctionManagerAddress == addressZero)
         {
             Terminal.print(0, "DeBot is being upgraded.\nPlease come back in a minute.\nSorry for inconvenience.");
             return;
@@ -345,7 +329,27 @@ contract AuctionDebot is Debot, Upgradable
 
     function _createAuction_14(uint32 index) public
     {
-        // TODO: please revise everything and say, deploy or not
+        index = 0; // shut a warning
+
+        Terminal.print(0, format("Seller: 0:{:064x}\nBuyer: 0:{:064x}\nAsset: 0:{:064x}\nAuction type: {}\nDate start: {}\nFee: {:t}\nMinimum bid: {:t}\nPrice step: {:t}\nBuy Now price: {:t}\nDate end: {}\nDate reveal end: {}\nDutch cycle: {}", 
+            _sellerAddress, 
+            _buyerAddress, 
+            _assetAddress, 
+            getAuctionTypeName(_auctionType), 
+            _dtStart,
+            _feeValue, 
+            _minBid, 
+            _minPriceStep, 
+            _buyNowPrice, 
+            _dtEnd, 
+            _dtRevealEnd, 
+            _dutchCycle));
+        
+        MenuItem[] mi;
+        mi.push(MenuItem("YES",        "", tvm.functionId(_createAuction_15) ));
+        mi.push(MenuItem("No",         "", tvm.functionId(mainEnterDialog)   ));
+        mi.push(MenuItem("<- Restart", "", tvm.functionId(mainEnterDialog)   ));
+        Menu.select("Is everything alright? Proceed? ", "", mi);
     }
 
     function _createAuction_15(uint32 index) public view
@@ -462,7 +466,151 @@ contract AuctionDebot is Debot, Upgradable
     function _fetchAuction_4(uint32 index) public
     {
         index = 0; // shut a warning
-        //what would you like to do? bid, finalize etc
+
+        MenuItem[] mi;
+        if(_sellerAddress == _msigAddress)
+        {
+            mi.push(MenuItem("Receive Asset",  "", tvm.functionId(_fetchAuction_receiveAsset)  ));
+            mi.push(MenuItem("Cancel Auction", "", tvm.functionId(_fetchAuction_cancelAuction) ));
+        }
+        if(_auctionType == AUCTION_TYPE.ENGLISH_BLIND)
+        {
+            mi.push(MenuItem("Bid Blind",        "", tvm.functionId(_createAuction_1) ));
+            mi.push(MenuItem("Reveal Blind Bid", "", tvm.functionId(_createAuction_1) ));
+        }
+        else
+        {
+            mi.push(MenuItem("Bid", "", tvm.functionId(_createAuction_1) ));
+        }
+        mi.push(MenuItem("Finalize", "", tvm.functionId(_fetchAuction_finalize) ));
+        Menu.select("What would you like to do?", "", mi);
+    }
+
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //
+    function _fetchAuction_receiveAsset(uint32 index) public
+    {
+        index = 0; // shut a warning
+        TvmCell body = tvm.encodeBody(IAuction.receiveAsset);
+        _sendTransact(0, _msigAddress, _auctionAddress, body, ATTACH_VALUE);
+        _fetchAuction_2(_auctionAddress);
+    }
+
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //
+    function _fetchAuction_cancelAuction(uint32 index) public
+    {
+        index = 0; // shut a warning
+        TvmCell body = tvm.encodeBody(IAuction.cancelAuction);
+        _sendTransact(0, _msigAddress, _auctionAddress, body, ATTACH_VALUE);
+        _fetchAuction_2(_auctionAddress);
+    }
+
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //
+    function _fetchAuction_finalize(uint32 index) public
+    {
+        index = 0; // shut a warning
+        TvmCell body = tvm.encodeBody(IAuction.finalize);
+        _sendTransact(0, _msigAddress, _auctionAddress, body, ATTACH_VALUE);
+        _fetchAuction_2(_auctionAddress);
+    }
+
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //
+    function _fetchAuction_bid_1(uint32 index) public
+    {
+        index = 0; // shut a warning
+
+        AmountInput.get(tvm.functionId(_fetchAuction_bid_2), "Enter bid amount: ", 9, (_currentBuyPrice == 0 ? _minBid : _currentBuyPrice + _minPriceStep), 999999999999999999999999999999);
+    }
+
+    function _fetchAuction_bid_2(uint128 value) public
+    {
+        TvmCell body = tvm.encodeBody(IAuction.bid);
+        _sendTransact(0, _msigAddress, _auctionAddress, body, _feeValue + value + ATTACH_VALUE);
+        _fetchAuction_2(_auctionAddress);
+    }
+    
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //
+    function _fetchAuction_bidBlind_1(uint32 index) public
+    {
+        index = 0; // shut a warning
+
+        AmountInput.get(tvm.functionId(_fetchAuction_bidBlind_2), "Enter blind bid amount: ", 9, _minBid, 999999999999999999999999999999);
+    }
+
+    function _fetchAuction_bidBlind_2(uint128 value) public
+    {
+        _blindBid  = value;
+        _blindSalt = uint256(now) * 5 + 10; // Nice salt huh? If you are reading this, you know that this line should be randomized in production;
+
+        TvmBuilder builder;
+        builder.store(_blindBid);
+        builder.store(_blindSalt);
+        TvmCell cell = builder.toCell();
+        uint256 newHash = tvm.hash(cell);
+
+        TvmCell body = tvm.encodeBody(IAuction.bidBlind, newHash);
+        _sendTransact(0, _msigAddress, _auctionAddress, body, _feeValue + ATTACH_VALUE);
+        _fetchAuction_bidBlind_3(0);
+    }
+
+    function _fetchAuction_bidBlind_3(uint32 index) public
+    {
+        index = 0; // shut a warning
+
+        Terminal.print(0, format("Please save these values for later reveal: BID = {}, SALT = {}", _blindBid, _blindSalt));
+        _fetchAuction_2(_auctionAddress);
+    }
+
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //
+    function _fetchAuction_revealBidBlind_1(uint32 index) public
+    {
+        index = 0; // shut a warning
+
+        AmountInput.get(tvm.functionId(_fetchAuction_bidBlind_2), "Enter blind bid amount: ", 9, _minBid, 999999999999999999999999999999);
+    }
+
+    function _fetchAuction_revealBidBlind_2(uint128 value) public
+    {
+        _blindBid  = value;
+        NumberInput.get(tvm.functionId(_fetchAuction_revealBidBlind_3), "Enter blind bid salt:", 0, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+    }
+
+    function _fetchAuction_revealBidBlind_3(int256 value) public
+    {
+        _blindSalt = uint256(value);
+
+        TvmCell body = tvm.encodeBody(IAuction.revealBidBlind, _blindBid, _blindSalt);
+        _sendTransact(0, _msigAddress, _auctionAddress, body, _feeValue + _blindBid + ATTACH_VALUE);
+        _fetchAuction_2(_auctionAddress);
     }
 
 }

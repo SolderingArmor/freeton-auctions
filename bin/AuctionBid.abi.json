@@ -1,0 +1,54 @@
+{
+	"ABI version": 2,
+	"header": ["pubkey", "time", "expire"],
+	"functions": [
+		{
+			"name": "constructor",
+			"inputs": [
+				{"name":"feeValue","type":"uint128"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "setPriceHash",
+			"inputs": [
+				{"name":"priceHash","type":"uint256"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "revealPriceHash",
+			"inputs": [
+				{"name":"_answer_id","type":"uint32"},
+				{"name":"price","type":"uint128"},
+				{"name":"salt","type":"uint256"}
+			],
+			"outputs": [
+				{"name":"revealedPrice","type":"uint128"},
+				{"name":"revealedSalt","type":"uint256"},
+				{"name":"revealedHash","type":"uint256"},
+				{"name":"actualHash","type":"uint256"},
+				{"name":"bidderAddress","type":"address"}
+			]
+		},
+		{
+			"name": "getInfo",
+			"inputs": [
+			],
+			"outputs": [
+				{"name":"auctionAddress","type":"address"},
+				{"name":"bidderAddress","type":"address"},
+				{"name":"feeValue","type":"uint128"},
+				{"name":"priceHash","type":"uint256"}
+			]
+		}
+	],
+	"data": [
+		{"key":1,"name":"_auctionAddress","type":"address"},
+		{"key":2,"name":"_bidderAddress","type":"address"}
+	],
+	"events": [
+	]
+}
