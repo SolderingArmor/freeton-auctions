@@ -85,5 +85,9 @@ class AuctionDnsRecord(object):
         result = self._run(functionName="getInfo", functionParams={})
         return result
 
+    def getDesiredPrice(self):
+        result = self._run(functionName="getDesiredPrice", functionParams={})
+        return result
+
 # ==============================================================================
 # 

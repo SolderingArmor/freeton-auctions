@@ -228,7 +228,15 @@ abstract contract IAuction
         {
             uint32 timePassed = now - _dtStart;
             (uint32 fullCyclesNum, ) = math.divmod(timePassed, _dutchCycle);
-            desiredPrice = math.max(_minBid - (fullCyclesNum * _minPriceStep), _buyNowPrice);
+            uint128 amountToSubtract = fullCyclesNum * _minPriceStep;
+            if(amountToSubtract >= _minBid)
+            {
+                desiredPrice = _buyNowPrice;
+            }
+            else
+            {
+                desiredPrice = math.max(_minBid - amountToSubtract, _buyNowPrice);
+            }
         }
 
         return desiredPrice;

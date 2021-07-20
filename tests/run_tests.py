@@ -383,7 +383,7 @@ class Test_03_DeployDnsAuctionPublic(unittest.TestCase):
 
 # ==============================================================================
 # 
-class Test_03_DeployDnsAuctionEnglishForward(unittest.TestCase):
+class Test_04_DeployDnsAuctionEnglishForward(unittest.TestCase):
 
     msig    = SetcodeMultisig(tonClient=getClient())
     msig2   = SetcodeMultisig(tonClient=getClient())
@@ -516,6 +516,110 @@ class Test_03_DeployDnsAuctionEnglishForward(unittest.TestCase):
         result = self.msig4.destroy(addressDest = freeton_utils.giverGetAddress())
         self.assertEqual(result[1]["errorCode"], 0)
         result = self.msig5.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+        result = self.domain.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+# ==============================================================================
+# 
+class Test_05_DeployDnsAuctionDutchForward(unittest.TestCase):
+
+    msig    = SetcodeMultisig(tonClient=getClient())
+    msig2   = SetcodeMultisig(tonClient=getClient())
+    domain  = DnsRecordTEST(tonClient=getClient(), name="kek")
+    dtNow   = getNowTimestamp()
+    
+    auction = AuctionDnsRecord(
+        tonClient     = getClient(), 
+        # statics
+        sellerAddress = msig.ADDRESS, 
+        buyerAddress  = ZERO_ADDRESS,
+        assetAddress  = domain.ADDRESS, 
+        auctionType   = 2, # DUTCH_FORWARD 
+        dtStart       = dtNow + 1,
+        # constructor
+        escrowAddress = msig.ADDRESS, 
+        escrowPercent = 500,
+        feeValue      = DIME*5,
+        minBid        = TON*10,
+        minPriceStep  = DIME, 
+        buyNowPrice   = TON, 
+        dtEnd         = dtNow+170,
+        dtRevealEnd   = 0, # it is not blind auction
+        dutchCycle    = 2)
+
+    manager = AuctionManagerDnsRecord(tonClient=getClient(), ownerAddress=msig.ADDRESS, bidCode=getCodeFromTvc(auction.TVC_BID), auctionCode=getCodeFromTvc(auction.TVC))
+    
+    def test_0(self):
+        print("\n\n----------------------------------------------------------------------")
+        print("Running:", self.__class__.__name__)
+
+    # 1. Giver
+    def test_1(self):
+        giverGive(getClient(), self.msig.ADDRESS,    TON * 10)
+        giverGive(getClient(), self.msig2.ADDRESS,   TON * 20)
+        giverGive(getClient(), self.manager.ADDRESS, TON * 1)
+        giverGive(getClient(), self.domain.ADDRESS,  TON * 1)
+        giverGive(getClient(), self.auction.ADDRESS, TON * 1)
+
+        #print(self.auction.ADDRESS)
+
+    # 2. Deploy multisig
+    def test_2(self):
+        result = self.msig.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.msig2.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.domain.deploy(ownerAddress=self.msig.ADDRESS)
+        self.assertEqual(result[1]["errorCode"], 0)
+
+    # 3. Deploy something else
+    def test_3(self):
+        result = self.manager.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        
+    # 4. Get info
+    def test_4(self):
+
+        result = self.manager.createAuctionDnsRecord(msig=self.msig, value=TON, 
+            sellerAddress = self.msig.ADDRESS, 
+            buyerAddress  = ZERO_ADDRESS,
+            assetAddress  = self.domain.ADDRESS, 
+            auctionType   = 2, # DUTCH_FORWARD 
+            dtStart       = self.dtNow + 1,
+            # constructor
+            feeValue      = DIME*5,
+            minBid        = TON*10,
+            minPriceStep  = DIME, 
+            buyNowPrice   = TON, 
+            dtEnd         = self.dtNow+170,
+            dtRevealEnd   = 0, # it is not blind auction
+            dutchCycle    = 2)
+        
+        result = self.domain.callFromMultisig(msig=self.msig, functionName="changeOwner", functionParams={"newOwnerAddress": self.auction.ADDRESS}, value=100000000, flags=1)
+
+        result = self.auction.receiveAsset(msig=self.msig,  value=100000000)
+
+        time.sleep(5)
+
+        result = self.auction.bid     (msig=self.msig2, value=TON*11)
+        result = self.auction.finalize(msig=self.msig2, value=TON)
+
+        # second time is a charm
+        result = self.auction.finalize(msig=self.msig2, value=TON)
+        #msgArray = unwrapMessages(getClient(), result[0].transaction["out_msgs"], _getAbiArray())
+        #pprint(msgArray)
+
+        result = self.auction.getInfo()
+        result = self.domain.run(functionName="getWhois", functionParams={})
+        self.assertEqual(result["ownerAddress"], self.msig2.ADDRESS)
+
+    # 5. Cleanup
+    def test_5(self):
+        result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.msig2.destroy(addressDest = freeton_utils.giverGetAddress())
         self.assertEqual(result[1]["errorCode"], 0)
 
         result = self.domain.destroy(addressDest = freeton_utils.giverGetAddress())
