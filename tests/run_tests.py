@@ -12,6 +12,7 @@ from   pathlib import Path
 from   pprint import pprint
 from   contract_AuctionManagerDnsRecord import AuctionManagerDnsRecord
 from   contract_AuctionDnsRecord        import AuctionDnsRecord
+from   contract_AuctionDebot            import AuctionDebot
 from   contract_DnsRecordTEST           import DnsRecordTEST
 
 #TON  = 1000000000
@@ -724,6 +725,49 @@ class Test_06_DeployDnsAuctionEnglishBlind(unittest.TestCase):
         self.assertEqual(result[1]["errorCode"], 0)
 
         result = self.domain.destroy(addressDest = freeton_utils.giverGetAddress())
+        self.assertEqual(result[1]["errorCode"], 0)
+
+# ==============================================================================
+# 
+class Test_07_DeployDebot(unittest.TestCase):
+
+    msig    = SetcodeMultisig(tonClient=getClient(), signer=loadSigner(keysFile="msig.json"))
+    manager = AuctionManagerDnsRecord(tonClient=getClient(), ownerAddress=msig.ADDRESS, bidCode=getCodeFromTvc("../bin/AuctionBid.tvc"), auctionCode=getCodeFromTvc("../bin/AuctionDnsRecord.tvc"))
+    debot   = AuctionDebot(tonClient=getClient(), ownerAddress=msig.ADDRESS)
+    
+    def test_0(self):
+        print("\n\n----------------------------------------------------------------------")
+        print("Running:", self.__class__.__name__)
+
+    # 1. Giver
+    def test_1(self):
+        giverGive(getClient(), self.msig.ADDRESS,    TON * 15)
+        giverGive(getClient(), self.manager.ADDRESS, TON * 1)
+        giverGive(getClient(), self.debot.ADDRESS,   TON * 1)
+
+    # 2. Deploy multisig
+    def test_2(self):
+        result = self.msig.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        result = self.debot.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+
+    # 3. Deploy something else
+    def test_3(self):
+        result = self.manager.deploy()
+        self.assertEqual(result[1]["errorCode"], 0)
+        
+    # 4. Get info
+    def test_4(self):
+
+        self.debot.setAuctionManagerAddress(msig=self.msig, value=TON, managerAddress=self.manager.ADDRESS)
+        self.debot.setABI(msig=self.msig, value=TON)
+        print("\nMULTISIG ADDRESS:", self.msig.ADDRESS)
+        print(  "DEBOT    ADDRESS:", self.debot.ADDRESS)
+
+    # 5. Cleanup
+    def test_5(self):
+        result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
         self.assertEqual(result[1]["errorCode"], 0)
 
 # ==============================================================================

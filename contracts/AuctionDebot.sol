@@ -294,7 +294,7 @@ contract AuctionDebot is Debot, Upgradable
 
     function _createAuction_10(int256 value) public // _dtStart
     {
-        _dtStart = uint32(value);
+        _dtStart = now + uint32(value);
         NumberInput.get(tvm.functionId(_createAuction_11), "Enter auction duration (seconds from start):", 1, 60*60*24*60);
     }
 
@@ -331,10 +331,10 @@ contract AuctionDebot is Debot, Upgradable
     {
         index = 0; // shut a warning
 
-        Terminal.print(0, format("Seller: 0:{:064x}\nBuyer: 0:{:064x}\nAsset: 0:{:064x}\nAuction type: {}\nDate start: {}\nFee: {:t}\nMinimum bid: {:t}\nPrice step: {:t}\nBuy Now price: {:t}\nDate end: {}\nDate reveal end: {}\nDutch cycle: {}", 
+        Terminal.print(0, format("Seller: {:064x}\nBuyer: {:064x}\nAsset: {:064x}\nAuction type: {}\nDate start: {}\nFee: {:t}\nMinimum bid: {:t}\nPrice step: {:t}\nBuy Now price: {:t}\nDate end: {}\nDate reveal end: {}\nDutch cycle: {}", 
             _sellerAddress, 
             _buyerAddress, 
-            _assetAddress, 
+            _assetAddress,
             getAuctionTypeName(_auctionType), 
             _dtStart,
             _feeValue, 
@@ -352,12 +352,14 @@ contract AuctionDebot is Debot, Upgradable
         Menu.select("Is everything alright? Proceed? ", "", mi);
     }
 
-    function _createAuction_15(uint32 index) public view
+    function _createAuction_15(uint32 index) public
     {
         index = 0; // shut a warning
         TvmCell body = tvm.encodeBody(IAuctionManager.createAuction, _sellerAddress, _buyerAddress, _assetAddress, _auctionType, _dtStart,
                                                                      _feeValue, _minBid, _minPriceStep, _buyNowPrice, _dtEnd, _dtRevealEnd, _dutchCycle);
-        _sendTransact(0, _msigAddress, _auctionManagerAddress, body, ATTACH_VALUE);
+
+        Terminal.print(0, format("{}", body.toSlice().empty() ? "e" : "F"));
+        _sendTransact(_msigAddress, _auctionManagerAddress, body, _feeValue + ATTACH_VALUE);
 
         IAuctionManager(_auctionManagerAddress).calculateAuctionInit{
                 abiVer: 2,
@@ -496,7 +498,7 @@ contract AuctionDebot is Debot, Upgradable
     {
         index = 0; // shut a warning
         TvmCell body = tvm.encodeBody(IAuction.receiveAsset);
-        _sendTransact(0, _msigAddress, _auctionAddress, body, ATTACH_VALUE);
+        _sendTransact(_msigAddress, _auctionAddress, body, ATTACH_VALUE);
         _fetchAuction_2(_auctionAddress);
     }
 
@@ -510,7 +512,7 @@ contract AuctionDebot is Debot, Upgradable
     {
         index = 0; // shut a warning
         TvmCell body = tvm.encodeBody(IAuction.cancelAuction);
-        _sendTransact(0, _msigAddress, _auctionAddress, body, ATTACH_VALUE);
+        _sendTransact(_msigAddress, _auctionAddress, body, ATTACH_VALUE);
         _fetchAuction_2(_auctionAddress);
     }
 
@@ -524,7 +526,7 @@ contract AuctionDebot is Debot, Upgradable
     {
         index = 0; // shut a warning
         TvmCell body = tvm.encodeBody(IAuction.finalize);
-        _sendTransact(0, _msigAddress, _auctionAddress, body, ATTACH_VALUE);
+        _sendTransact(_msigAddress, _auctionAddress, body, ATTACH_VALUE);
         _fetchAuction_2(_auctionAddress);
     }
 
@@ -544,7 +546,7 @@ contract AuctionDebot is Debot, Upgradable
     function _fetchAuction_bid_2(uint128 value) public
     {
         TvmCell body = tvm.encodeBody(IAuction.bid);
-        _sendTransact(0, _msigAddress, _auctionAddress, body, _feeValue + value + ATTACH_VALUE);
+        _sendTransact(_msigAddress, _auctionAddress, body, _feeValue + value + ATTACH_VALUE);
         _fetchAuction_2(_auctionAddress);
     }
     
@@ -573,7 +575,7 @@ contract AuctionDebot is Debot, Upgradable
         uint256 newHash = tvm.hash(cell);
 
         TvmCell body = tvm.encodeBody(IAuction.bidBlind, newHash);
-        _sendTransact(0, _msigAddress, _auctionAddress, body, _feeValue + ATTACH_VALUE);
+        _sendTransact(_msigAddress, _auctionAddress, body, _feeValue + ATTACH_VALUE);
         _fetchAuction_bidBlind_3(0);
     }
 
@@ -609,7 +611,7 @@ contract AuctionDebot is Debot, Upgradable
         _blindSalt = uint256(value);
 
         TvmCell body = tvm.encodeBody(IAuction.revealBidBlind, _blindBid, _blindSalt);
-        _sendTransact(0, _msigAddress, _auctionAddress, body, _feeValue + _blindBid + ATTACH_VALUE);
+        _sendTransact(_msigAddress, _auctionAddress, body, _feeValue + _blindBid + ATTACH_VALUE);
         _fetchAuction_2(_auctionAddress);
     }
 

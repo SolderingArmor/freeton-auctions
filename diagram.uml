@@ -1,0 +1,48 @@
+@startuml
+
+title Free TON online auctions implementation
+
+package "Seller" {
+    component [Web] as WebSeller
+    component [DeBot] as DeBotSeller
+}
+
+package "Buyer" {
+    component [Web] as WebBuyer
+    component [DeBot] as DeBotBuyer
+}
+
+node "Blockchain" {
+    [AuctionManager] as manager
+    [Auction contract 1] as auction1
+    [Auction contract 2] as auction2
+    [Auction contract 3] as auction3
+    [Auction contract 4] as auction4
+    [Auction contract 5] as auction5
+    [Auction bid1] as bid1
+    [Auction bid2] as bid2
+    [Auction bid3] as bid3
+} 
+
+WebSeller -down-> manager
+DeBotSeller -down-> manager
+manager -down-> auction1
+manager -down-> auction2
+manager -down-> auction3
+manager -down-> auction4
+manager -down-> auction5
+WebBuyer -down-> auction1
+WebBuyer -down-> auction2
+WebBuyer -down-> auction3
+WebBuyer -down-> auction4
+WebBuyer -down-> auction5
+DeBotBuyer -down-> auction1
+DeBotBuyer -down-> auction2
+DeBotBuyer -down-> auction3
+DeBotBuyer -down-> auction4
+DeBotBuyer -down-> auction5
+auction2 -down-> bid1
+auction2 -down-> bid2
+auction2 -down-> bid3
+
+@enduml
