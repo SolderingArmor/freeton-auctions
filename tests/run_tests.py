@@ -767,8 +767,9 @@ class Test_07_DeployDebot(unittest.TestCase):
 
     # 5. Cleanup
     def test_5(self):
-        result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
-        self.assertEqual(result[1]["errorCode"], 0)
+        pass
+        #result = self.msig.destroy(addressDest = freeton_utils.giverGetAddress())
+        #self.assertEqual(result[1]["errorCode"], 0)
 
 # ==============================================================================
 # 
