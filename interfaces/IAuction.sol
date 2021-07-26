@@ -26,6 +26,11 @@ abstract contract IAuction
     //========================================
     // Constants
     address constant addressZero = address.makeAddrStd(0, 0);
+    
+    //========================================
+    // Events
+    event auctionCancelled();
+    event bidReceived(address bidderAddress, uint128 amount);
 
     //========================================
     // Error codes
@@ -192,7 +197,9 @@ abstract contract IAuction
         require(_currentBuyer == addressZero && _currentBlindBets == 0, ERROR_AUCTION_IN_PROCESS);
 
         _reserve(); // reserve minimum balance;
-        _auctionSucceeded     = true;
+        _auctionSucceeded = true;
+
+        emit auctionCancelled();
 
         // return the change
         msg.sender.transfer(0, true, 128);
@@ -308,6 +315,8 @@ abstract contract IAuction
             _currentBuyer.transfer(_currentBuyPrice, true, 0); 
         }
 
+        emit bidReceived(bidderAddress, revealedPrice);
+
         // Update current buyer
         _currentBuyer    = bidderAddress;
         _currentBuyPrice = revealedPrice;
@@ -357,6 +366,8 @@ abstract contract IAuction
                 _currentBuyer.transfer(_currentBuyPrice, true, 0); 
             }
 
+            emit bidReceived(msg.sender, msg.value - _feeValue);
+
             // Update current buyer
             _currentBuyer    = msg.sender;
             _currentBuyPrice = msg.value - _feeValue;
@@ -366,6 +377,8 @@ abstract contract IAuction
         {
             tvm.rawReserve(desiredPrice, 0); // reserve buy price, we don't want the change;
             _auctionSucceeded = true;
+            
+            emit bidReceived(msg.sender, desiredPrice);
             
             // Update current buyer
             _currentBuyer    = msg.sender;

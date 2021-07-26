@@ -6,9 +6,9 @@
 
 `Wallet Address`: 0:cba39007bdb0f025aac0609b25e96a7d2153f06d22fa47b5f6c26cf756b8b2d6
 
-`[devnet] Auction Manager address`: 0:000000
+`[devnet] Auction Manager address`: 0:e70f6f581dd7b973dc71ce77493c2e11b7bfa29798497a28bfe7f54d5c5bbd34
 
-`[devnet] DeBot address`: 0:000000
+`[devnet] DeBot address`: 0:a9b2bfbe46ee7ee40f9cee04faa59989b9d45c1c32d29f10cc9eb0ceb59b124a
 
 # Diagram
 

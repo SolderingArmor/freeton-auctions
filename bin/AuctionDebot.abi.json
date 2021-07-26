@@ -285,6 +285,14 @@
 			]
 		},
 		{
+			"name": "_fetchAuction_refresh",
+			"inputs": [
+				{"name":"index","type":"uint32"}
+			],
+			"outputs": [
+			]
+		},
+		{
 			"name": "_fetchAuction_receiveAsset",
 			"inputs": [
 				{"name":"index","type":"uint32"}

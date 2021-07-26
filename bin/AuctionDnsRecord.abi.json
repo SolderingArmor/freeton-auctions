@@ -148,5 +148,21 @@
 		{"key":6,"name":"_dtStart","type":"uint32"}
 	],
 	"events": [
+		{
+			"name": "auctionCancelled",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "bidReceived",
+			"inputs": [
+				{"name":"bidderAddress","type":"address"},
+				{"name":"amount","type":"uint128"}
+			],
+			"outputs": [
+			]
+		}
 	]
 }

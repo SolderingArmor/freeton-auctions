@@ -352,13 +352,11 @@ contract AuctionDebot is Debot, Upgradable
         Menu.select("Is everything alright? Proceed? ", "", mi);
     }
 
-    function _createAuction_15(uint32 index) public
+    function _createAuction_15(uint32 index) public view
     {
         index = 0; // shut a warning
         TvmCell body = tvm.encodeBody(IAuctionManager.createAuction, _sellerAddress, _buyerAddress, _assetAddress, _auctionType, _dtStart,
                                                                      _feeValue, _minBid, _minPriceStep, _buyNowPrice, _dtEnd, _dtRevealEnd, _dutchCycle);
-
-        Terminal.print(0, format("{}", body.toSlice().empty() ? "e" : "F"));
         _sendTransact(_msigAddress, _auctionManagerAddress, body, _feeValue + ATTACH_VALUE);
 
         IAuctionManager(_auctionManagerAddress).calculateAuctionInit{
@@ -377,8 +375,7 @@ contract AuctionDebot is Debot, Upgradable
     {
         auctionInit.toSlice(); // shut a warning
         _fetchAuction_2(auctionAddress);
-    }
-    
+    }    
 
     //========================================
     //========================================
@@ -462,6 +459,21 @@ contract AuctionDebot is Debot, Upgradable
         _currentBuyDT     = currentBuyDT;
         _currentBlindBets = currentBlindBets;
 
+        Terminal.print(0, format("Auction Address: {:064x}\nSeller: {:064x}\nBuyer: {:064x}\nAsset: {:064x}\nAuction type: {}\nDate start: {}\nFee: {:t}\nMinimum bid: {:t}\nPrice step: {:t}\nBuy Now price: {:t}\nDate end: {}\nDate reveal end: {}\nDutch cycle: {}", 
+            _auctionAddress,
+            _sellerAddress, 
+            _buyerAddress, 
+            _assetAddress,
+            getAuctionTypeName(_auctionType), 
+            _dtStart,
+            _feeValue, 
+            _minBid, 
+            _minPriceStep, 
+            _buyNowPrice, 
+            _dtEnd, 
+            _dtRevealEnd, 
+            _dutchCycle));
+
         _fetchAuction_4(0);
     }
 
@@ -472,22 +484,57 @@ contract AuctionDebot is Debot, Upgradable
         MenuItem[] mi;
         if(_sellerAddress == _msigAddress)
         {
-            mi.push(MenuItem("Receive Asset",  "", tvm.functionId(_fetchAuction_receiveAsset)  ));
-            mi.push(MenuItem("Cancel Auction", "", tvm.functionId(_fetchAuction_cancelAuction) ));
+            if(_assetReceived == false)
+            {
+                mi.push(MenuItem("Receive Asset",  "", tvm.functionId(_fetchAuction_receiveAsset)  ));
+            }
+            if(_currentBuyer == addressZero && _currentBlindBets == 0)
+            {
+                mi.push(MenuItem("Cancel Auction", "", tvm.functionId(_fetchAuction_cancelAuction) ));
+            }
         }
         if(_auctionType == AUCTION_TYPE.ENGLISH_BLIND)
         {
-            mi.push(MenuItem("Bid Blind",        "", tvm.functionId(_createAuction_1) ));
-            mi.push(MenuItem("Reveal Blind Bid", "", tvm.functionId(_createAuction_1) ));
+            if(now < _dtEnd && _assetReceived)
+            {
+                mi.push(MenuItem("Bid Blind", "", tvm.functionId(_fetchAuction_bidBlind_1) ));
+            }
+            if(now >= _dtEnd && now < _dtRevealEnd && _assetReceived)
+            {
+                mi.push(MenuItem("Reveal Blind Bid", "", tvm.functionId(_fetchAuction_revealBidBlind_1) ));
+            }
         }
         else
         {
-            mi.push(MenuItem("Bid", "", tvm.functionId(_createAuction_1) ));
+            if(now < _dtEnd && _assetReceived)
+            {
+                mi.push(MenuItem("Bid", "", tvm.functionId(_fetchAuction_bid_1) ));
+            }
         }
-        mi.push(MenuItem("Finalize", "", tvm.functionId(_fetchAuction_finalize) ));
+        
+        if(now >= _dtEnd && now >=_dtRevealEnd && _assetReceived)
+        {
+            mi.push(MenuItem("Finalize", "", tvm.functionId(_fetchAuction_finalize) ));
+        }
+
+        mi.push(MenuItem("Refresh",    "", tvm.functionId(_fetchAuction_refresh) ));
+        mi.push(MenuItem("<- Restart", "", tvm.functionId(mainEnterDialog)       ));
+
         Menu.select("What would you like to do?", "", mi);
     }
 
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //========================================
+    //
+    function _fetchAuction_refresh(uint32 index) public
+    {
+        index = 0; // shut a warning
+        _fetchAuction_2(_auctionAddress);
+    }
+    
     //========================================
     //========================================
     //========================================
@@ -539,8 +586,16 @@ contract AuctionDebot is Debot, Upgradable
     function _fetchAuction_bid_1(uint32 index) public
     {
         index = 0; // shut a warning
+        if(_currentBuyPrice > 0)
+        {
+            Terminal.print(0, format("Current bid is {}, minimum price step is {}.", _currentBuyPrice, _minPriceStep));
+        }
+        else
+        {
 
-        AmountInput.get(tvm.functionId(_fetchAuction_bid_2), "Enter bid amount: ", 9, (_currentBuyPrice == 0 ? _minBid : _currentBuyPrice + _minPriceStep), 999999999999999999999999999999);
+        }
+
+        AmountInput.get(tvm.functionId(_fetchAuction_bid_2), "Make your bid: ", 9, (_currentBuyPrice == 0 ? _minBid : _currentBuyPrice + _minPriceStep), 999999999999999999999999999999);
     }
 
     function _fetchAuction_bid_2(uint128 value) public
