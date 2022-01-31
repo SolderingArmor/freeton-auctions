@@ -1,5 +1,6 @@
 {
 	"ABI version": 2,
+	"version": "2.2",
 	"header": ["pubkey", "time", "expire"],
 	"functions": [
 		{
@@ -21,7 +22,7 @@
 		{
 			"name": "revealPriceHash",
 			"inputs": [
-				{"name":"_answer_id","type":"uint32"},
+				{"name":"answerId","type":"uint32"},
 				{"name":"price","type":"uint128"},
 				{"name":"salt","type":"uint256"}
 			],
@@ -41,7 +42,8 @@
 				{"name":"auctionAddress","type":"address"},
 				{"name":"bidderAddress","type":"address"},
 				{"name":"feeValue","type":"uint128"},
-				{"name":"priceHash","type":"uint256"}
+				{"name":"priceHash","type":"uint256"},
+				{"name":"dt","type":"uint32"}
 			]
 		}
 	],
@@ -50,5 +52,16 @@
 		{"key":2,"name":"_bidderAddress","type":"address"}
 	],
 	"events": [
+	],
+	"fields": [
+		{"name":"_pubkey","type":"uint256"},
+		{"name":"_timestamp","type":"uint64"},
+		{"name":"_constructorFlag","type":"bool"},
+		{"name":"_gasReserve","type":"uint128"},
+		{"name":"_auctionAddress","type":"address"},
+		{"name":"_bidderAddress","type":"address"},
+		{"name":"_feeValue","type":"uint128"},
+		{"name":"_priceHash","type":"uint256"},
+		{"name":"_dt","type":"uint32"}
 	]
 }
